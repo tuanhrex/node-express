@@ -119,6 +119,208 @@ let colorArray = (randomColor({
  }))
 
  console.log(colorArray)
- ```
- 14. In the command line, type `node index.js` to confirm that everything is working properly.
+```
+14. In the command line, type `node index.js` to confirm that everything is working properly.
+
+# hello-express
+
+1. `fork` and `clone` the `hello-express` repo.
+2. Type `npm init -y` in command line.
+3. Type `npm install express`
+4. Type `touch index.js` to make a js file.
+5. Type `code .` to open VS Code.
+6. Navigate to `index.js` file and type:
+```js
+const express = require('express');
+const app = express();
+```
+7. Now that the app is connected, to create a route to the root directory type:
+```js
+app.get('/', function(req, res) {
+    res.send('Hello, SEI world');
+});
+
+app.listen(8000);
+```
+8. To make other routes, you can type anything after the '\' like it is shown below:
+```js
+app.get('/about', function(req, res) {
+    res.send('This is the about page.')
+});
+```
+9. Now return to your command line and type `node index.js`
+10. Go to chrome and type in `localhost:800` to view the page.
+
+# express-apis-omdb
+
+1. `fork` and `clone` repo in the terminal.
+2. Navigate to the directory in type `npm install` to install all packages needed.
+3. Also type `npm install axios` which will be used later
+4. Type `touch .env`
+5. Type `code .` to open VS Code.
+6. Open the `.env` file and type `api=[yourkey]`
+7. Open your `server.js` to make sure all required packages as shown below and a listen:
+```js
+require('dotenv').config();
+const express = require('express');
+const ejsLayouts = require('express-ejs-layouts');
+const app = express();
+const axios = require('axios').default;
+
+
+// Sets EJS as the view engine
+app.set('view engine', 'ejs');
+// Specifies the location of the static assets folder
+app.use(express.static('static'));
+// Sets up body-parser for parsing form data
+app.use(express.urlencoded({ extended: false }));
+// Enables EJS Layouts middleware
+app.use(ejsLayouts);
+
+// Adds some logging to each request
+app.use(require('morgan')('dev'));
+
+var server = app.listen(process.env.PORT || 3000);
+
+```
+8. Now open your `index.ejs` to build your search form with a get method and `/results` action. To do that type:
+```ejs
+<form method="GET" action="/results">
+    <input type="text" name="q" id="movie">
+    <input type="submit" value="Search">
+
+</form>
+```
+9. Go back to your `server.js` to make your root route display `index.ejs`. To build the route type:
+```js
+app.get('/', function(req, res) {
+  res.render('index');
+  console.log('Hello');
+});
+```
+10. Now make your results path that takes your query from the search form , searches the omdb API, and then render in the results page.
+```js
+app.get('/results', (req, res) => {
+  
+
+  // for (const key in req.query) {
+  //   console.log(key, req.query[key])
+  // }
+  
+  axios.get(`http://www.omdbapi.com/?apikey=${process.env.api}&s=${req.query.q}`)
+  .then(function (response) {
+    const movies = response.data.Search
+    
+    
+    res.render('results', { movies })
+  })
+})
+```
+10. Now open your `results.ejs` and add the results with links to the movie using it's id in the page.
+```
+<ul>
+    <% movies.forEach(function(movie) { %>
+        <li> <a href="/movies/<%= movie.imdbID %>"><%= movie.Title %></a></li>
+        
+    <% }); %>
+
+</ul>
+```
+11. The links leads to `/movies/` route, so now we need to build that route. Go back to the `server.js` and to build your route to for `/movies`, that searches for the movies based on its movie id, and then render in `/detail`.
+```js
+app.get('/movies/:movie_id', (req,res) => {
+  const movie_id = req.params.movie_id
  
+
+  axios.get(`http://www.omdbapi.com/?apikey=${process.env.api}&i=${movie_id}`)
+  .then(function (response) {
+    
+    const movie = response.data
+
+    res.render('detail', { movie })
+  })
+})
+```
+# express-apis-omdb (continue)
+
+14. Type 'npm install -g sequelize-cli` in your terminal to do a global install on your local machine.
+15. Type `npm install pg` and `npm install sequelize` to install postgres and sequelize.
+16. Type `sequelize init` to initialize sequelize.
+17. In VS Code, open the `config.json` and make chages to match your project.
+```js
+{
+  "development": {
+    "username": "postgres",
+    "password": "whateveryourpasswordis",
+    "database": "express-apis-omdb_development",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "test": {
+    "username": "postgres",
+    "password": "whateveryourpasswordis",
+    "database": "express-apis-omdb_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "production": {
+    "username": "postgres",
+    "password": "whateveryourpasswordis",
+    "database": "express-apis-omdb_production",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}
+```
+18. Return to your terminal and type `sequelize db:create express-apis-omdb_development` create your database with sequelize and have its name match the database in your config.
+19. Type `sequelize model:create --name fave --attributes title:string,imdb:string` to create a model.
+20. Type `sequelize db:migrate` to ensure that your model connects to your database.
+21. Return to your `server.js` in VS Code and require the new module.
+```js
+const db = require('./models')
+```
+22. Navigate to your `detail.ejs` and add a form with two hidden fields of movie title and imdbib. It should be a `POST` method and have an action of `/faves`
+```js
+<form method="POST" action="/faves">
+    
+    <label for="fave">Add To Fave</label>
+    <input type="hidden" id="movieTitle" name="movieTitle" value="<%= movie.Title %>">
+    <input type="hidden" id="movieimdbID" name="movieimdbID" value="<%= movie.imdbID %>">
+    <input type="submit">
+</form>
+
+```
+23. Go back to your `server.js` and create a `POST` route for `/faves`.
+```js
+app.post('/faves', (req, res) => {
+  db.fave.create({
+    title: req.body.movieTitle,
+    imdbid: req.body.movieimdbID
+  }).then(newMovie => {
+    console.log(newMovie);
+  })
+
+
+  res.redirect('/faves')
+})
+```
+24. Now create a `GET` route for `/faves` and use your model to get all faves from your database.
+```js
+app.get('/faves', (req, res) => {
+  
+  db.fave.findAll().then(allFaves => {
+  console.log(allFaves);
+  res.render('faves', { allFaves})
+});
+```
+25. Create a `faves.ejs` and open it and add:
+```html
+This is my faves
+
+<ul>
+    <% allFaves.forEach(function(faves) { %>
+    <li><%= faves.title%></li>
+    <% }); %>
+</ul>
+```
+
